@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="google-site-verification" content="Z1vuxiTa01xZoI1D9h8hNO1Uuo_GuEEFfdv6ZLFuqhk"/>
+    <title>Secure Node - Ultra Encrypted Chat</title>
+    
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="shortcut icon" type="image/png" href="./favicon.png">
+    <link rel="apple-touch-icon" href="./favicon.png">
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            /* Premium Attractive Neumorphic Palette */
+            --bg-main: #F7F4EF;        
+            --panel-bg: #F7F4EF;       
+            --shadow-dark: #E2DBD0;    
+            --shadow-light: #FFFFFF;   
+            
+            --text-primary: #3E2723;   
+            --text-muted: #8D6E63;     
+            
+            --accent-terracotta: #FF5E3A; 
+            --wa-green: #FF5E3A;
+            --status-online: #10B981;   
+            --tick-blue: #3B82F6;       
+            --wa-name-color: #FF5E3A;
+            
+            --wa-incoming: #EFEAE2;     
+            --wa-outgoing: #FFEBE5;     
+            
+            --status-offline: #9E9E9E; 
+            --wa-input-bg: #EDE8E0;     
+            --tick-grey: #BCAAA4; 
+            --icon-soft: #A89993; 
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #1E1B18;
+            --panel-bg: #1E1B18;
+            --shadow-dark: #12100E;
+            --shadow-light: #2A2622;
+            --text-primary: #EAE6E1;
+            --text-muted: #A89993;
+            --accent-terracotta: #FF7A59;
+            --wa-incoming: #2A2522;
+            --wa-outgoing: #3D2D28;
+            --wa-input-bg: #151311;
+            --tick-grey: #5A504B;
+            --icon-soft: #8D6E63; 
+        }
+
+        .neu-raised {
+            box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+        }
+
+        .neu-inset {
+            box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            border: none;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #chat-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            background: var(--bg-main);
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        /* Responsive Improvements for Laptops & Desktops */
+        @media (min-width: 768px) {
+            body {
+                background-color: var(--shadow-dark); 
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #chat-screen {
+                position: relative;
+                width: 92%;
+                max-width: 950px;
+                height: 88vh;
+                background-color: var(--bg-main);
+                border-radius: 28px;
+                box-shadow: 20px 20px 40px var(--shadow-dark), -20px -20px 40px var(--shadow-light);
+                border: 1px solid rgba(255, 255, 255, 0.4);
+            }
+        }
+
+        #privateRoomModal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(236, 231, 224, 0.7); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            padding: 20px;
+            display: none;
+        }
+
+        .login-card {
+            background: var(--bg-main);
+            padding: 40px 32px;
+            border-radius: 32px;
+            /* Password Box Ki Shadow Kam Ki Gayi Hai */
+            box-shadow: 4px 4px 12px var(--shadow-dark), -4px -4px 12px var(--shadow-light);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h2 {
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .login-card p {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            line-height: 1.5;
+            background: var(--wa-incoming);
+            padding: 12px 16px;
+            border-radius: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 22px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            background-color: var(--wa-input-bg);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            /* Password Inner Input Field Shadow Bhi Soft Ki Gayi Hai */
+            box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+        }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-enter {
+            flex: 1;
+            padding: 16px;
+            background: linear-gradient(135deg, #FF7A59, var(--accent-terracotta));
+            color: white;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 4px 8px 20px rgba(255, 94, 58, 0.3);
+        }
+
+        .btn-cancel {
+            padding: 16px 24px;
+            background-color: var(--wa-input-bg);
+            color: var(--text-primary);
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 4px 4px 10px var(--shadow-dark);
+        }
+
+        .chat-header {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 75px;
+            background-color: var(--panel-bg);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 30;
+            box-shadow: 0 8px 20px var(--shadow-dark);
+        }
+
+        @media (min-width: 768px) {
+            .chat-header {
+                border-top-left-radius: 28px;
+                border-top-right-radius: 28px;
+            }
+        }
+
+        .avatar-anonymous {
+            width: 46px;
+            height: 46px;
+            background-color: var(--wa-input-bg);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+        }
+
+        .avatar-anonymous svg { width: 28px; height: 28px; fill: var(--accent-terracotta); }
+        .header-info { flex-grow: 1; min-width: 0; }
+        .header-info h3 { font-size: 18px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+        
+        .presence-status { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--panel-bg);
+            color: var(--icon-soft); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+        }
+
+        .icon-btn:active {
+            box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+        }
+
+        .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .encryption-banner {
+            width: 100%;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 20px 0 10px;
+            z-index: 5;
+        }
+
+        .encryption-banner svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .chat-container-wrapper {
+            position: absolute;
+            top: 75px; bottom: 78px; left: 0;
+            width: 100%;
+            overflow-y: auto;
+            background-color: transparent; 
+            z-index: 15;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Sleek Desktop Scrollbar Implementation */
+        .chat-container-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-container-wrapper::-webkit-scrollbar-thumb {
+            background: var(--shadow-dark);
+            border-radius: 10px;
+        }
+        .chat-container-wrapper::-webkit-scrollbar-thumb:hover {
+            background: var(--icon-soft);
+        }
+        
+        .chat-box-content {
+            position: relative;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 5;
+            width: 100%;
+        }
+
+        .msg {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-break: break-word;
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.5;
+            color: var(--text-primary);
+            position: relative;
+            will-change: transform;
+        }
+
+        .msg.me { 
+            background-color: var(--wa-outgoing); 
+            align-self: flex-end; 
+            border-top-right-radius: 4px; 
+            box-shadow: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light); 
+        }
+
+        .msg.peer { 
+            background-color: var(--wa-incoming); 
+            align-self: flex-start; 
+            border-top-left-radius: 4px; 
+            box-shadow: 4px 4px 10px var(--shadow-dark), -4px -4px 10px var(--shadow-light); 
+        }
+
+        .msg-sender { display: block; font-size: 12px; font-weight: 800; color: var(--accent-terracotta); margin-bottom: 4px; }
+        .msg.me .msg-sender { display: none; }
+        
+        /* Enabled Copy-Paste Selection For Messages on PC */
+        .msg-text { 
+            display: inline; 
+            white-space: pre-wrap; 
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .msg-meta {
+            float: right;
+            margin-left: 10px;
+            margin-top: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-text { font-size: 10px; color: var(--text-muted); font-weight: 700; }
+        .dot-status-wrapper { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; }
+        .status-dot-indicator { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+
+        .msg.has-image { padding: 8px; max-width: 260px; }
+        .image-wrapper { position: relative; cursor: pointer; border-radius: 12px; overflow: hidden; width: 244px; height: 185px; background: var(--wa-input-bg); }
+        .msg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .typing-bubble {
+            align-self: flex-start;
+            background-color: var(--wa-incoming);
+            padding: 12px 18px;
+            border-radius: 16px;
+            border-top-left-radius: 4px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 4px 4px 10px var(--shadow-dark), -4px -4px 10px var(--shadow-light); 
+        }
+
+        .typing-user { font-size: 12px; font-weight: 800; color: var(--accent-terracotta); }
+        .dots-container { display: flex; align-items: center; gap: 5px; height: 12px; }
+        .dot { width: 7px; height: 7px; background-color: var(--text-muted); border-radius: 50%; animation: bounce 1.3s infinite ease-in-out; }
+        .dot:nth-child(2) { animation-delay: 0.15s; }
+        .dot:nth-child(3) { animation-delay: 0.3s; }
+
+        .chat-footer {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 78px;
+            background-color: var(--panel-bg);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 30;
+            box-shadow: 0 -8px 20px var(--shadow-dark);
+        }
+
+        @media (min-width: 768px) {
+            .chat-footer {
+                border-bottom-left-radius: 28px;
+                border-bottom-right-radius: 28px;
+            }
+        }
+
+        .footer-input {
+            flex-grow: 1;
+            min-width: 0; 
+            padding: 16px 20px;
+            border-radius: 24px;
+            background-color: var(--wa-input-bg);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+        }
+
+        .footer-input:focus { outline: none; }
+
+        .btn-media {
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            flex-shrink: 0;
+        }
+
+        .btn-media:hover { color: var(--accent-terracotta); transform: scale(1.1); }
+        .btn-media svg { width: 26px; height: 26px; fill: currentColor; }
+        .btn-media.recording { color: #EF4444; animation: pulse 1s infinite linear; }
+
+        #mediaMenuOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999;
+        }
+        
+        .media-options-card {
+            position: fixed;
+            bottom: 90px;
+            left: 20px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 8px 8px 24px var(--shadow-dark), -8px -8px 24px var(--shadow-light);
+            z-index: 10000;
+        }
+
+        .media-opt-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 14px;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: left;
+            width: 170px;
+        }
+        .media-opt-btn:hover {
+            background-color: var(--wa-input-bg);
+            color: var(--accent-terracotta);
+        }
+        .media-opt-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .btn-send {
+            background: linear-gradient(135deg, #FF7A59, var(--accent-terracotta));
+            color: #ffffff;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 3px 6px 14px rgba(255, 94, 58, 0.3);
+        }
+
+        .btn-send svg { width: 22px; height: 22px; fill: #ffffff; margin-left: 2px; }
+
+        #photoModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(11, 8, 6, 0.95);
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            width: 100%; height: 70px;
+            display: flex; align-items: center;
+            padding: 0 20px;
+            position: absolute;
+            top: 0; left: 0; z-index: 10001;
+        }
+
+        .modal-back-btn {
+            background: transparent;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 10px;
+        }
+
+        .modal-back-btn svg { width: 26px; height: 26px; fill: currentColor; }
+        .modal-body { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        #modalImg { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 12px; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); opacity: 0.4; }
+            50% { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="privateRoomModal">
+        <div class="login-card">
+            <h2>Setup Secure Private Room</h2>
+            <p>Ek ya ek se adhik log secret chat karne ke liye ek jaisa hi room password dale</p>
+            
+            <div class="input-group">
+                <label>Apna Naam</label>
+                <input type="text" id="modalUsernameField" placeholder="E.g. Rohit Kumar">
+            </div>
+            
+            <div class="input-group">
+                <label>Secret Room Password (E2EE Key)</label>
+                <input type="password" id="modalCryptoKeyField" placeholder="Enter Secret Room Password">
+            </div>
+            
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="closePrivateModal()">Cancel</button>
+                <button class="btn-enter" onclick="activatePrivateMode()">Connect Private Node</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mediaMenuOverlay" onclick="toggleMediaMenu(false)">
+        <div class="media-options-card" onclick="event.stopPropagation()">
+            <button class="media-opt-btn" onclick="triggerCameraInput()">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                Camera 📷
+            </button>
+            <button class="media-opt-btn" onclick="triggerGalleryInput()">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                Media/Gallery 🖼️
+            </button>
+        </div>
+    </div>
+
+    <div id="chat-screen">
+        
+        <div class="chat-header">
+            <div class="avatar-anonymous">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            </div>
+            <div class="header-info">
+                <h3 id="chatRoomTitle">Public Chat 🌐</h3>
+                <span id="presenceStatus" class="presence-status">● Connecting...</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">
+                    <svg viewBox="0 0 24 24" id="themeIcon"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+                </button>
+                
+                <button class="icon-btn" id="privateToggleBtn" onclick="handlePrivateToggleClick()" title="Toggle Public/Private Chat">
+                    <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="chat-container-wrapper" id="scrollWrapper">
+            <div class="encryption-banner" id="encryptionStatusBanner">
+                <svg viewBox="0 0 24 24">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                </svg>
+                <span id="bannerText">Public Mode Enabled</span>
+            </div>
+            <div class="chat-box-content" id="chatBox"></div>
+        </div>
+
+        <div class="chat-footer">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="uploadPhoto(this)">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="uploadPhoto(this)">
+            
+            <button class="btn-media" onclick="document.getElementById('imageInput').click()" title="Open Gallery">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            </button>
+
+            <button class="btn-media" id="voiceBtn" onclick="toggleVoiceRecord()" title="Record Voice">
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+            </button>
+
+            <input type="text" id="msgInput" class="footer-input" placeholder="Message" oninput="handleTypingNotification()">
+            
+            <button onclick="sendMessage()" class="btn-send" title="Send">
+                <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="photoModal">
+        <div class="modal-header">
+            <button class="modal-back-btn" onclick="closePhotoModal()" title="Back">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            </button>
+        </div>
+        <div class="modal-body" onclick="closePhotoModal()">
+            <img id="modalImg" src="" alt="Fullscreen view" onclick="event.stopPropagation()">
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            databaseURL: "https://net-movies-2aa38-default-rtdb.firebaseio.com/"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const uniqueUserId = Math.random().toString(36).substring(7);
+        let activeUsersList = {};
+        
+        let userName = localStorage.getItem('chat_username') || "";
+        let encryptionKeyString = ""; 
+
+        let currentMode = "public"; 
+        let currentRoomID = "public_lobby"; 
+        let myPresenceRef = null;
+        let connectedListenerRef = null;
+        let autoCleanInterval = null;
+
+        let cryptoKey;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let typingTimeout;
+        let voiceTimerTimeout; 
+        
+        let chatJoinTime = Date.now();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!userName) {
+                userName = "User-" + Math.random().toString(36).substring(7).toUpperCase();
+                localStorage.setItem('chat_username', userName);
+            }
+            initChatSystemEngine("public");
+        });
+
+        function generateRoomHash(password) {
+            let hash = 0;
+            for (let i = 0; i < password.length; i++) {
+                hash = (hash << 5) - hash + password.charCodeAt(i);
+                hash |= 0;
+            }
+            return "room_" + Math.abs(hash);
+        }
+
+        function getFirebaseRootPath(subNode) {
+            if (currentMode === "public") {
+                return `chat_app/public_lobby/${subNode}`;
+            } else {
+                return `chat_app/private_rooms/${currentRoomID}/${subNode}`;
+            }
+        }
+
+        async function initChatSystemEngine(mode, password = "") {
+            if (myPresenceRef) { myPresenceRef.remove(); myPresenceRef = null; }
+            if (connectedListenerRef) {
+                database.ref(".info/connected").off("value", connectedListenerRef);
+                connectedListenerRef = null;
+            }
+            if (autoCleanInterval) { clearInterval(autoCleanInterval); autoCleanInterval = null; }
+
+            if (currentMode) {
+                database.ref(getFirebaseRootPath('messages')).off();
+                database.ref(getFirebaseRootPath('typing')).off();
+                database.ref(getFirebaseRootPath('users')).off();
+            }
+
+            currentMode = mode;
+            chatJoinTime = Date.now();
+            document.getElementById('chatBox').innerHTML = "";
+
+            if (mode === "private") {
+                currentRoomID = generateRoomHash(password);
+                encryptionKeyString = password;
+                await initCrypto();
+                document.getElementById('chatRoomTitle').innerHTML = 'Secret Chat <span style="color:var(--accent-terracotta)">🔒</span>';
+                document.getElementById('bannerText').innerText = "Real End-to-End Encrypted Node";
+                document.getElementById('privateToggleBtn').style.color = "var(--accent-terracotta)";
+            } else {
+                currentRoomID = "public_lobby";
+                encryptionKeyString = "";
+                document.getElementById('chatRoomTitle').innerHTML = 'Public Chat 🌐';
+                document.getElementById('bannerText').innerText = "Public Mode Enabled";
+                document.getElementById('privateToggleBtn').style.color = "var(--icon-soft)";
+            }
+
+            createTypingBubbleUI();
+            setupPresence();
+            listenForMessages();
+            listenForTyping();
+            setupSecurity();
+            setupAutoClean();
+        }
+
+        function handlePrivateToggleClick() {
+            if (currentMode === "private") {
+                if (confirm("Kya aap Private chat se exit hokar Public chat par wapas jana chahte hain?")) {
+                    initChatSystemEngine("public");
+                }
+            } else {
+                document.getElementById('modalUsernameField').value = userName;
+                document.getElementById('modalCryptoKeyField').value = "";
+                document.getElementById('privateRoomModal').style.display = "flex";
+            }
+        }
+
+        function closePrivateModal() {
+            document.getElementById('privateRoomModal').style.display = "none";
+        }
+
+        function activatePrivateMode() {
+            const nameInput = document.getElementById('modalUsernameField').value.trim();
+            const passInput = document.getElementById('modalCryptoKeyField').value.trim();
+
+            if (!nameInput || !passInput) {
+                alert("Naam aur Secret Password dono daalna zaroori hai!");
+                return;
+            }
+
+            userName = nameInput;
+            localStorage.setItem('chat_username', userName);
+            closePrivateModal();
+
+            initChatSystemEngine("private", passInput);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', targetTheme);
+            
+            const themeIcon = document.getElementById('themeIcon');
+            if (targetTheme === 'dark') {
+                themeIcon.innerHTML = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s-1 .45-1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41zM5.99 16.95l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41z"/>`;
+            } else {
+                themeIcon.innerHTML = `<path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>`;
+            }
+        }
+
+        function toggleMediaMenu(show) {
+            const overlay = document.getElementById('mediaMenuOverlay');
+            overlay.style.display = show ? 'block' : 'none';
+        }
+
+        function triggerCameraInput() {
+            toggleMediaMenu(false);
+            document.getElementById('cameraInput').click();
+        }
+
+        function triggerGalleryInput() {
+            toggleMediaMenu(false);
+            document.getElementById('imageInput').click();
+        }
+
+        async function initCrypto() {
+            try {
+                const encoder = new TextEncoder();
+                const rawKey = encoder.encode(encryptionKeyString.padEnd(32, '0').substring(0, 32));
+                cryptoKey = await window.crypto.subtle.importKey(
+                    "raw", rawKey, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]
+                );
+            } catch(e) { console.error("Crypto Key Init Error: ", e); }
+        }
+
+        async function encryptData(plainText) {
+            if (currentMode === "public") return plainText; 
+            try {
+                const encoder = new TextEncoder();
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv }, cryptoKey, encoder.encode(plainText)
+                );
+                
+                const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(encrypted), iv.length);
+                
+                let binary = "";
+                const len = combined.byteLength;
+                const chunkSize = 0x8000; 
+                for (let i = 0; i < len; i += chunkSize) {
+                    binary += String.fromCharCode.apply(null, combined.subarray(i, Math.min(i + chunkSize, len)));
+                }
+                return btoa(binary);
+            } catch(e) { return ""; }
+        }
+
+        async function decryptData(cipherTextBase64) {
+            if (currentMode === "public") return cipherTextBase64;
+            try {
+                if(!cipherTextBase64 || cipherTextBase64.startsWith("[")) return cipherTextBase64;
+                
+                const binaryString = atob(cipherTextBase64);
+                const len = binaryString.length;
+                if (len < 13) return "[Corrupted Data]"; 
+                
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+                
+                const iv = bytes.slice(0, 12);
+                const data = bytes.slice(12);
+                
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv }, cryptoKey, data
+                );
+                return new TextDecoder().decode(decrypted);
+            } catch (e) {
+                return "[Encrypted Data - Room Password Mismatch]";
+            }
+        }
+
+        function setupSecurity() {
+            document.oncontextmenu = (e) => e.preventDefault();
+            document.onkeydown = (e) => {
+                if (e.key === 'PrintScreen') {
+                    try { navigator.clipboard.writeText(""); } catch(err){}
+                }
+                if (e.key === 'Escape') { closePhotoModal(); }
+            };
+        }
+
+        function setupPresence() {
+            myPresenceRef = database.ref(getFirebaseRootPath(`users/${uniqueUserId}`));
+            const allUsersRef = database.ref(getFirebaseRootPath('users'));
+
+            connectedListenerRef = database.ref(".info/connected").on("value", (snap) => {
+                if (snap.val() === true) {
+                    myPresenceRef.onDisconnect().remove();
+                    myPresenceRef.set({ active: true, name: userName });
+                }
+            });
+
+            allUsersRef.on('value', (snapshot) => {
+                activeUsersList = snapshot.val() || {};
+                const activeCount = Object.keys(activeUsersList).length;
+                const statusTextElement = document.getElementById('presenceStatus');
+                
+                if (statusTextElement) {
+                    if (activeCount > 0) {
+                        statusTextElement.innerHTML = `<span style="color:var(--status-online)">●</span> ${activeCount} Online`;
+                    } else {
+                        statusTextElement.innerHTML = `<span style="color:var(--status-offline)">●</span> Offline`;
+                    }
+                }
+                triggerSeenUpdateForReceivedMessages();
+            });
+        }
+
+        function createTypingBubbleUI() {
+            const chatBox = document.getElementById('chatBox');
+            if(!chatBox) return;
+            const tBubble = document.createElement('div');
+            tBubble.className = 'typing-bubble';
+            tBubble.id = 'typingBubbleInstance';
+            tBubble.innerHTML = `
+                <span class="typing-user" id="typingUserSpan">Someone</span>
+                <div class="dots-container"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            `;
+            chatBox.appendChild(tBubble);
+        }
+
+        function handleTypingNotification() {
+            database.ref(getFirebaseRootPath(`typing/${uniqueUserId}`)).set({ typing: true, senderName: userName });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => { database.ref(getFirebaseRootPath(`typing/${uniqueUserId}`)).remove(); }, 1500);
+        }
+
+        function listenForTyping() {
+            database.ref(getFirebaseRootPath('typing')).on('value', (snapshot) => {
+                const tBubble = document.getElementById('typingBubbleInstance');
+                const tUserSpan = document.getElementById('typingUserSpan');
+                const scrollWrapper = document.getElementById('scrollWrapper');
+
+                const data = snapshot.val();
+                let typingUser = "";
+                if (data) {
+                    Object.keys(data).forEach((userId) => {
+                        if (userId !== uniqueUserId) { typingUser = data[userId].senderName || "Someone"; }
+                    });
+                }
+                if (typingUser && tBubble && scrollWrapper && tUserSpan) {
+                    tUserSpan.innerText = typingUser;
+                    tBubble.style.display = 'flex';
+                    const chatBox = document.getElementById('chatBox');
+                    chatBox.appendChild(tBubble);
+                    scrollWrapper.scrollTop = scrollWrapper.scrollHeight;
+                } else if (tBubble) {
+                    tBubble.style.display = 'none';
+                }
+            });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            if(!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            database.ref(getFirebaseRootPath(`typing/${uniqueUserId}`)).remove();
+            const initialSeenState = {};
+            initialSeenState[uniqueUserId] = true; 
+            Object.keys(activeUsersList).forEach(uid => { initialSeenState[uid] = true; });
+
+            const encryptedPayload = await encryptData(text);
+            if(!encryptedPayload) return;
+
+            pushMessage({
+                sender: uniqueUserId,
+                senderName: userName,
+                type: 'text',
+                ciphertext: encryptedPayload,
+                timestamp: Date.now(),
+                seenBy: initialSeenState
+            });
+            input.value = "";
+        }
+
+        function pushMessage(msgObj) {
+            try {
+                database.ref(getFirebaseRootPath('messages')).push().set(msgObj);
+            } catch (e) { console.error("Transmission failure:", e); }
+        }
+
+        function listenForMessages() {
+            const scrollWrapper = document.getElementById('scrollWrapper');
+
+            database.ref(getFirebaseRootPath('messages')).on('child_added', async (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                if (data.timestamp && data.timestamp >= chatJoinTime) {
+                    const side = (data.sender === uniqueUserId) ? 'me' : 'peer';
+                    const decryptedText = await decryptData(data.ciphertext);
+                    displayMessage({ ...data, ciphertext: decryptedText }, side, snapshot.key);
+                    
+                    if (side === 'peer') {
+                        database.ref(getFirebaseRootPath(`messages/${snapshot.key}/seenBy/${uniqueUserId}`)).set(true).catch(e=>{});
+                    }
+                    const tBubble = document.getElementById('typingBubbleInstance');
+                    if (tBubble && scrollWrapper) {
+                        const chatBox = document.getElementById('chatBox');
+                        chatBox.appendChild(tBubble);
+                    }
+                }
+            });
+
+            database.ref(getFirebaseRootPath('messages')).on('child_changed', (snapshot) => {
+                const data = snapshot.val();
+                if (data) updateDotsUI(data, snapshot.key);
+            });
+
+            database.ref(getFirebaseRootPath('messages')).on('child_removed', (snapshot) => {
+                const element = document.getElementById(snapshot.key);
+                if (element) element.remove();
+            });
+        }
+
+        function setupAutoClean() {
+            if (autoCleanInterval) clearInterval(autoCleanInterval);
+
+            autoCleanInterval = setInterval(() => {
+                const msgRef = database.ref(getFirebaseRootPath('messages'));
+                msgRef.once('value', (snapshot) => {
+                    const messages = snapshot.val();
+                    if (!messages) return;
+                    
+                    const now = Date.now();
+                    Object.keys(messages).forEach((key) => {
+                        if (messages[key] && messages[key].timestamp) {
+                            if (now - messages[key].timestamp > 90000) {
+                                database.ref(getFirebaseRootPath(`messages/${key}`)).remove().catch(e => {});
+                            }
+                        }
+                    });
+                });
+            }, 4000); 
+        }
+
+        function triggerSeenUpdateForReceivedMessages() {
+            database.ref(getFirebaseRootPath('messages')).once('value', (snapshot) => {
+                const messages = snapshot.val();
+                if (!messages) return;
+                Object.keys(messages).forEach(msgKey => {
+                    if (messages[msgKey] && messages[msgKey].sender !== uniqueUserId && messages[msgKey].timestamp >= chatJoinTime) {
+                        database.ref(getFirebaseRootPath(`messages/${msgKey}/seenBy/${uniqueUserId}`)).set(true).catch(e => {});
+                    }
+                });
+            });
+        }
+
+        function displayMessage(data, side, msgKey) {
+            if (document.getElementById(msgKey)) return;
+
+            const scrollWrapper = document.getElementById('scrollWrapper');
+            const chatBox = document.getElementById('chatBox');
+            if(!chatBox || !scrollWrapper) return;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('msg', side);
+            msgDiv.id = msgKey;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('msg-sender');
+            nameSpan.innerText = data.senderName || "Anonymous";
+            msgDiv.appendChild(nameSpan);
+
+            if (data.type === 'image') {
+                msgDiv.classList.add('has-image'); 
+                const imgWrapper = document.createElement('div');
+                imgWrapper.classList.add('image-wrapper');
+                imgWrapper.onclick = function() { openPhotoModal(data.ciphertext); };
+                const img = document.createElement('img');
+                img.src = data.ciphertext;
+                imgWrapper.appendChild(img);
+                msgDiv.appendChild(imgWrapper);
+            } else if (data.type === 'audio') {
+                const audio = document.createElement('audio');
+                audio.src = data.ciphertext;
+                audio.controls = true;
+                audio.setAttribute('controlsList', 'nodownload');
+                msgDiv.appendChild(audio);
+            } else {
+                const textSpan = document.createElement('span');
+                textSpan.classList.add('msg-text');
+                textSpan.innerText = data.ciphertext;
+                msgDiv.appendChild(textSpan);
+            }
+
+            const metaDiv = document.createElement('div');
+            metaDiv.classList.add('msg-meta');
+            metaDiv.id = `meta-${msgKey}`;
+            msgDiv.appendChild(metaDiv);
+
+            chatBox.appendChild(msgDiv);
+            scrollWrapper.scrollTop = scrollWrapper.scrollHeight;
+
+            updateDotsUI(data, msgKey);
+        }
+
+        function updateDotsUI(data, msgKey) {
+            const metaDiv = document.getElementById(`meta-${msgKey}`);
+            if (!metaDiv) return;
+
+            const side = (data.sender === uniqueUserId) ? 'me' : 'peer';
+            const seenByCount = data.seenBy ? Object.keys(data.seenBy).length : 1;
+            const totalActiveNow = Object.keys(activeUsersList).length;
+            const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+            
+            let dotsHTML = '';
+            if (side === 'me') {
+                if (seenByCount > 1 || totalActiveNow > 1) {
+                    dotsHTML = `<div class="dot-status-wrapper"><span class="status-dot-indicator" style="background-color: var(--tick-blue);"></span><span class="status-dot-indicator" style="background-color: var(--tick-blue);"></span></div>`;
+                } else {
+                    dotsHTML = `<div class="dot-status-wrapper"><span class="status-dot-indicator" style="background-color: var(--tick-grey);"></span></div>`;
+                }
+            }
+            metaDiv.innerHTML = `<span class="time-text">${timeStr}</span>` + dotsHTML;
+        }
+
+        function openPhotoModal(src) {
+            const modal = document.getElementById('photoModal');
+            const modalImg = document.getElementById('modalImg');
+            if(modal && modalImg && src && !src.startsWith("[")) {
+                modalImg.src = src;
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closePhotoModal() { 
+            const modal = document.getElementById('photoModal');
+            if(modal) modal.style.display = 'none'; 
+        }
+
+        function uploadPhoto(element) {
+            const file = element.files[0];
+            if (!file) return;
+
+            // 2MB Strict Max Limit Validation
+            if (file.size > 2 * 1024 * 1024) {
+                alert("Image size bahot badi hai! Kripya 2MB se kam ki image select karein.");
+                element.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = async function() {
+                const initialSeenState = {};
+                initialSeenState[uniqueUserId] = true;
+                Object.keys(activeUsersList).forEach(uid => { initialSeenState[uid] = true; });
+
+                const encryptedImage = await encryptData(reader.result);
+                if(!encryptedImage) return;
+
+                pushMessage({
+                    sender: uniqueUserId,
+                    senderName: userName,
+                    type: 'image',
+                    ciphertext: encryptedImage,
+                    timestamp: Date.now(),
+                    seenBy: initialSeenState
+                });
+            }
+            reader.readAsDataURL(file);
+            element.value = "";
+        }
+
+        function toggleVoiceRecord() {
+            const voiceBtn = document.getElementById('voiceBtn');
+            if (!isRecording) {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("Your browser does not support audio recording.");
+                    return;
+                }
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+                        mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                        mediaRecorder.onstop = () => {
+                            clearTimeout(voiceTimerTimeout); 
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+                            const reader = new FileReader();
+                            reader.onloadend = async function() {
+                                const initialSeenState = {};
+                                initialSeenState[uniqueUserId] = true;
+                                Object.keys(activeUsersList).forEach(uid => { initialSeenState[uid] = true; });
+
+                                const encryptedAudio = await encryptData(reader.result);
+                                if(!encryptedAudio) return;
+
+                                pushMessage({
+                                    sender: uniqueUserId,
+                                    senderName: userName,
+                                    type: 'audio',
+                                    ciphertext: encryptedAudio,
+                                    timestamp: Date.now(),
+                                    seenBy: initialSeenState
+                                });
+                            }
+                            reader.readAsDataURL(audioBlob);
+                            stream.getTracks().forEach(track => track.stop());
+                        };
+                        
+                        mediaRecorder.start();
+                        isRecording = true;
+                        if(voiceBtn) voiceBtn.classList.add('recording');
+
+                        // 30 Seconds Strict Recording Auto-Stop Execution
+                        voiceTimerTimeout = setTimeout(() => {
+                            if (isRecording && mediaRecorder && mediaRecorder.state !== "inactive") {
+                                mediaRecorder.stop();
+                                isRecording = false;
+                                if(voiceBtn) voiceBtn.classList.remove('recording');
+                            }
+                        }, 30000);
+
+                    }).catch(err => alert("Microphone access denied."));
+            } else {
+                if(mediaRecorder) mediaRecorder.stop();
+                isRecording = false;
+                if(voiceBtn) voiceBtn.classList.remove('recording');
+            }
+        }
+
+        document.getElementById('msgInput').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
